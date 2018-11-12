@@ -1,5 +1,6 @@
 package com.jackiew.excel;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 import java.lang.reflect.Field;
@@ -10,9 +11,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Path;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
 
 import com.jackiew.excel.annotation.CellInfo;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.reflect.ConstructorUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.poi.ss.usermodel.Cell;
@@ -36,6 +45,13 @@ public class DefaultExcelParser<T> implements ExcelParser<T> {
      */
     private Class<T> supportClazz;
     private Map<String, Integer> fields;
+    private static final Validator VALIDATOR;
+
+    static {
+        ValidatorFactory factory = Validation
+                .buildDefaultValidatorFactory();
+        VALIDATOR = factory.getValidator();
+    }
 
     public DefaultExcelParser(Class<T> supportClazz) {
         this.supportClazz = supportClazz;
@@ -79,7 +95,6 @@ public class DefaultExcelParser<T> implements ExcelParser<T> {
             for (Map.Entry<String, Integer> field : fields.entrySet()) {
                 int columnIndex = field.getValue();
                 Cell cell = row.getCell(columnIndex);
-                Objects.requireNonNull(cell, "please check cell info configuration,cannot find cell according index:" + columnIndex);
                 Object cellValue = getCellValue(cell);
                 String fieldName = field.getKey();
                 try {
@@ -88,12 +103,23 @@ public class DefaultExcelParser<T> implements ExcelParser<T> {
                     e.printStackTrace();
                 }
             }
+            Set<ConstraintViolation<Object>> constraintViolations = VALIDATOR.validate(target);
+
+            if (CollectionUtils.isNotEmpty(constraintViolations)) {
+                String error = constraintViolations.stream()
+                        .map(ConstraintViolation::getMessage)
+                        .collect(joining(";"));
+                throw new IllegalArgumentException(error);
+            }
             rioList.add((T) target);
         }
         return rioList;
     }
 
     private Object getCellValue(Cell cell) {
+        if (Objects.isNull(cell)) {
+            return null;
+        }
         if (CellType.STRING.equals(cell.getCellType())) {
             return cell.getStringCellValue();
         }

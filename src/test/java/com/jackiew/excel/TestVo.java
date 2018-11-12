@@ -1,11 +1,14 @@
 package com.jackiew.excel;
 
+import javax.validation.constraints.NotBlank;
+
 import com.jackiew.excel.annotation.CellInfo;
 import com.jackiew.excel.annotation.ExcelExportClass;
 
 @ExcelExportClass
 public class TestVo {
     @CellInfo(title = "username", columnIndex = 0)
+    @NotBlank(message = "username cannot be null")
     private String name;
     @CellInfo(title = "age in law", columnIndex = 1)
     private int age;

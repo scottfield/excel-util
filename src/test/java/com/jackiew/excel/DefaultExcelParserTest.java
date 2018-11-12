@@ -19,4 +19,12 @@ public class DefaultExcelParserTest {
         List<TestVo> result = parser.parse(workbook.getSheetAt(0));
         System.out.println(result);
     }
+
+    @Test()
+    public void parseInvalidData() throws IOException {
+        Workbook workbook = new XSSFWorkbook(DefaultExcelParserTest.class.getResourceAsStream("/test-input-validation.xlsx"));
+        ExcelParser<TestVo> parser = new DefaultExcelParser<>(TestVo.class);
+        List<TestVo> result = parser.parse(workbook.getSheetAt(0));
+        System.out.println(result);
+    }
 }
